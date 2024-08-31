@@ -20,8 +20,9 @@ from langchain.callbacks import StreamlitCallbackHandler
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_groq import ChatGroq
-from langchain_chroma import Chroma
+#from langchain_chroma import Chroma
 from langchain_nvidia_ai_endpoints import NVIDIAEmbeddings, ChatNVIDIA
+from langchain_chroma.vectorstores import Chroma
 
 from dotenv import load_dotenv
 load_dotenv()
