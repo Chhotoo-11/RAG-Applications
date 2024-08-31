@@ -20,13 +20,16 @@ from langchain.callbacks import StreamlitCallbackHandler
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_groq import ChatGroq
-#from langchain_chroma import Chroma
 from langchain_nvidia_ai_endpoints import NVIDIAEmbeddings, ChatNVIDIA
-#from langchain_chroma.vectorstores import Chroma
 from langchain_community.vectorstores import FAISS
 
 from dotenv import load_dotenv
 load_dotenv()
+
+## Langsmith Tracking 
+os.environ["LANGCHAIN_API_KEY"]=os.getenv("LANGCHAIN_API_KEY") 
+os.environ["LANGCHAIN_TRACING_V2"]="true" 
+os.environ["LANGCHAIN_PROJECT"]="RAG_APP"
 
 ## Set up Streamlit app
 st.set_page_config(page_title="AI-Powered Knowledge Hub", page_icon="🤖", layout="wide")
