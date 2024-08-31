@@ -28,3 +28,4 @@ unstructured
 pytube
 numexpr
 langchain_nvidia_ai_endpoints
+chromadb
