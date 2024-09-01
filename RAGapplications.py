@@ -21,7 +21,7 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_groq import ChatGroq
 from langchain_nvidia_ai_endpoints import NVIDIAEmbeddings, ChatNVIDIA
-#from langchain_chroma.vectorstores import Chroma
+from langchain_chroma.vectorstores import Chroma
 from dotenv import load_dotenv
 load_dotenv()
 from langchain_community.vectorstores import FAISS
@@ -33,7 +33,11 @@ os.environ["LANGCHAIN_PROJECT"]="RAG MEGA PROJECT"
 
 
 ## Set up Streamlit app
-st.set_page_config(page_title="AI-Powered Knowledge Hub", page_icon="🤖", layout="wide", menu_items= {'About': "This app was created by Chhotoo Solanki."})
+st.set_page_config(page_title="AI-Powered Knowledge Hub", page_icon="🤖", layout="wide", menu_items={
+                     'Get Help': 'https://docs.streamlit.io/',
+                     'Report a bug': 'https://github.com/Chhotoo-11/RAG-Applications/issues',
+                     'About': "This app was created by Chhotoo Solanki."
+    })
 st.title("🤖 AI Knowledge Assistant")
 
 
@@ -51,10 +55,14 @@ with st.sidebar:
     elif api_mode == "NVIDIA API":
         api_key = st.text_input("Enter NVIDIA API Key", value="", type="password")
 
+    
+    st.markdown("---")
+
     # Section for app navigation
     st.subheader("🌐 App Mode")
     app_mode = st.selectbox("Choose the app mode", 
                             ["Chat with PDF", "URL/YouTube Summarizer", "Web Search"])
+
 
 # Initialize LLM
 def get_llm():
@@ -73,7 +81,7 @@ else:
     if llm:
         st.write(llm)
         if app_mode == "Chat with PDF":
-            st.header("Chat with PDF")
+            st.header("📄Chat with PDF")
             st.write("Start interacting with your PDF documents in a chat format. Upload a PDF and ask questions or extract information effortlessly.")
 
             # Upload a pdf
@@ -263,3 +271,5 @@ else:
 
     else:
         st.error("Failed to initialize LLM. Please check your API key and selection.")
+
+st.markdown("---")
