@@ -29,3 +29,4 @@ pytube
 numexpr
 langchain_nvidia_ai_endpoints
 duckduckgo-search
+pytube
