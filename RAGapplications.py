@@ -33,13 +33,13 @@ os.environ["LANGCHAIN_PROJECT"]="RAG MEGA PROJECT"
 
 
 ## Set up Streamlit app
-st.set_page_config(page_title="AI-Powered Knowledge Hub", page_icon="🤖", layout="wide")
+st.set_page_config(page_title="AI-Powered Knowledge Hub", page_icon="🤖", layout="wide", menu_items= {'About': "This app was created by Chhotoo Solanki."})
 st.title("🤖 AI Knowledge Assistant")
 
 
 ## Sidebar for settings
 with st.sidebar:
-    st.title("🛠️ Settings")
+    st.title("🛠️ Configuration")
     st.write("Configure your app settings below.")
     
     api_mode = st.selectbox("Choose the API Interface",
