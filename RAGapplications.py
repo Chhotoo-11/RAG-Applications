@@ -32,7 +32,7 @@ os.environ["LANGCHAIN_TRACING_V2"]="true"
 os.environ["LANGCHAIN_PROJECT"]="RAG_APP"
 
 ## Set up Streamlit app
-st.set_page_config(page_title="AI-Powered Knowledge Hub", page_icon="🤖", layout="wide")
+st.set_page_config(page_title="AI-Powered Knowledge Hub", page_icon="🤖", layout="wide", menu_items= {'About': "This app was created by Chhotoo Solanki."})
 st.title("🤖 AI Knowledge Assistant")
 
 ## Sidebar for settings
