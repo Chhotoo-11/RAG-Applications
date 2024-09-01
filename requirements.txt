@@ -25,8 +25,7 @@ torch
 validators
 youtube_transcript_api
 unstructured
-pytube
 numexpr
 langchain_nvidia_ai_endpoints
 duckduckgo-search
-pytube
+pytube==15.0.0
