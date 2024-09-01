@@ -263,7 +263,7 @@ else:
                                        except Exception as e:
                                            st.error(f"Error loading YouTube video: {str(e)}")
                                            st.info("Try using a different YouTube video URL or check your internet connection.")
-                                           return
+                                        
                             else:
                                 loader = UnstructuredURLLoader(urls=[generic_url], ssl_verify=False)
                             docs = loader.load()
