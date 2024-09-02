@@ -34,8 +34,6 @@ os.environ["LANGCHAIN_PROJECT"]="RAG MEGA PROJECT"
 
 ## Set up Streamlit app
 st.set_page_config(page_title="AI-Powered Knowledge Hub", page_icon="🤖", layout="wide", menu_items={
-                     'Get Help': 'https://docs.streamlit.io/',
-                     'Report a bug': 'https://github.com/Chhotoo-11/RAG-Applications/issues',
                      'About': "This app was created by Chhotoo Solanki."
     })
 st.title("🤖 AI Knowledge Assistant")
@@ -79,7 +77,7 @@ if api_mode == "Choose an API" or not api_key:
 else:
     llm = get_llm()
     if llm:
-        st.write(llm)
+        #st.write(llm)
         if app_mode == "Chat with PDF":
             st.header("📄Chat with PDF")
             st.write("Start interacting with your PDF documents in a chat format. Upload a PDF and ask questions or extract information effortlessly.")
