@@ -108,93 +108,93 @@ else:
                     docs= loader.load()
                     documents.extend(docs)
     
-            # Split and create embeddings for the documents
-            text_splitter = RecursiveCharacterTextSplitter(chunk_size=5000, chunk_overlap=500)
-            splits = text_splitter.split_documents(documents)
-            vectorstore = FAISS.from_documents(documents=splits, embedding=embeddings)
-            retriever = vectorstore.as_retriever() 
-    
-            contextualize_q_system_prompt = (
-                "Given a chat history and the latest user question "
-                "which might reference context in the chat history, "
-                "formulate a standalone question which can be understood "
-                "without the chat history. Do NOT answer the question, "
-                "just reformulate it if needed and otherwise return it as is."
-            )
-    
-            contextualize_q_prompt = ChatPromptTemplate.from_messages(
-                [
-                    ("system", contextualize_q_system_prompt),
-                    MessagesPlaceholder("chat_history"),
-                    ("human", "{input}"),
-                ]
-            )
-    
-            history_aware_retriever = create_history_aware_retriever(llm, retriever, contextualize_q_prompt)
-    
-            # Answer question
-            system_prompt = (
-                "You are an assistant for question-answering tasks. "
-                "Use the following pieces of retrieved context to answer "
-                "the question. If you don't know the answer, say that you "
-                "don't know. Use three sentences maximum and keep the "
-                "answer concise. If the user asks for a summary, use the summarization function."
-                "\n\n"
-                "{context}"
-            )
-            qa_prompt = ChatPromptTemplate.from_messages(
-                [
-                    ("system", system_prompt),
-                    MessagesPlaceholder("chat_history"),
-                    ("human", "{input}"),
-                ]
-            )
-            
-            question_answer_chain = create_stuff_documents_chain(llm, qa_prompt)
-            rag_chain = create_retrieval_chain(history_aware_retriever, question_answer_chain)
-    
-            def get_session_history(session: str) -> BaseChatMessageHistory:
-                if session not in st.session_state.store:
-                    st.session_state.store[session] = ChatMessageHistory()
-                return st.session_state.store[session]
-            
-            conversational_rag_chain = RunnableWithMessageHistory(
-                rag_chain,
-                get_session_history,
-                input_messages_key="input",
-                history_messages_key="chat_history",
-                output_messages_key="answer"
-            )
-    
-            def get_summary(splits):
-                prompt_template = """
-                Provide a summary of the following content in 300 words:
-                Content:{text}
-                """
-                prompt = PromptTemplate(template=prompt_template, input_variables=["text"])
-                chain = load_summarize_chain(llm, chain_type="map_reduce", map_prompt=prompt, combine_prompt=prompt)
-                return chain.run(splits)
-    
-            user_input = st.text_input("Your question:")
-            if user_input:
-                session_history = get_session_history(session_id)
-                
-                # Check if the user is asking for a summary
-                if "summary" in user_input.lower():
-                    summary = get_summary(splits)
-                    st.write("Assistant: Here's a summary of the document(s):")
-                    st.success(summary)
-                    #session_history.add_user_message(user_input)
-                    #session_history.add_ai_message(summary)
-                else:
-                    response = conversational_rag_chain.invoke(
-                        {"input": user_input},
-                        config={
-                            "configurable": {"session_id": session_id}
-                        },
-                    )
-                    st.success("Assistant:", response['answer'])
-                
+              # Split and create embeddings for the documents
+              text_splitter = RecursiveCharacterTextSplitter(chunk_size=5000, chunk_overlap=500)
+              splits = text_splitter.split_documents(documents)
+              vectorstore = FAISS.from_documents(documents=splits, embedding=embeddings)
+              retriever = vectorstore.as_retriever() 
+      
+              contextualize_q_system_prompt = (
+                  "Given a chat history and the latest user question "
+                  "which might reference context in the chat history, "
+                  "formulate a standalone question which can be understood "
+                  "without the chat history. Do NOT answer the question, "
+                  "just reformulate it if needed and otherwise return it as is."
+              )
+      
+              contextualize_q_prompt = ChatPromptTemplate.from_messages(
+                  [
+                      ("system", contextualize_q_system_prompt),
+                      MessagesPlaceholder("chat_history"),
+                      ("human", "{input}"),
+                  ]
+              )
+      
+              history_aware_retriever = create_history_aware_retriever(llm, retriever, contextualize_q_prompt)
+      
+              # Answer question
+              system_prompt = (
+                  "You are an assistant for question-answering tasks. "
+                  "Use the following pieces of retrieved context to answer "
+                  "the question. If you don't know the answer, say that you "
+                  "don't know. Use three sentences maximum and keep the "
+                  "answer concise. If the user asks for a summary, use the summarization function."
+                  "\n\n"
+                  "{context}"
+              )
+              qa_prompt = ChatPromptTemplate.from_messages(
+                  [
+                      ("system", system_prompt),
+                      MessagesPlaceholder("chat_history"),
+                      ("human", "{input}"),
+                  ]
+              )
+              
+              question_answer_chain = create_stuff_documents_chain(llm, qa_prompt)
+              rag_chain = create_retrieval_chain(history_aware_retriever, question_answer_chain)
+      
+              def get_session_history(session: str) -> BaseChatMessageHistory:
+                  if session not in st.session_state.store:
+                      st.session_state.store[session] = ChatMessageHistory()
+                  return st.session_state.store[session]
+              
+              conversational_rag_chain = RunnableWithMessageHistory(
+                  rag_chain,
+                  get_session_history,
+                  input_messages_key="input",
+                  history_messages_key="chat_history",
+                  output_messages_key="answer"
+              )
+      
+              def get_summary(splits):
+                  prompt_template = """
+                  Provide a summary of the following content in 300 words:
+                  Content:{text}
+                  """
+                  prompt = PromptTemplate(template=prompt_template, input_variables=["text"])
+                  chain = load_summarize_chain(llm, chain_type="map_reduce", map_prompt=prompt, combine_prompt=prompt)
+                  return chain.run(splits)
+      
+              user_input = st.text_input("Your question:")
+              if user_input:
+                  session_history = get_session_history(session_id)
+                  
+                  # Check if the user is asking for a summary
+                  if "summary" in user_input.lower():
+                      summary = get_summary(splits)
+                      st.write("Assistant: Here's a summary of the document(s):")
+                      st.success(summary)
+                      #session_history.add_user_message(user_input)
+                      #session_history.add_ai_message(summary)
+                  else:
+                      response = conversational_rag_chain.invoke(
+                          {"input": user_input},
+                          config={
+                              "configurable": {"session_id": session_id}
+                          },
+                      )
+                      st.success("Assistant:", response['answer'])
+                  
 
         ## Web Search
         elif app_mode == "Web Search":
