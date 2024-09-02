@@ -176,8 +176,9 @@ else:
                     return chain.run(splits)
 
                 def is_summary_request(query):
-                    summary_keywords = ['summary', 'summarize', 'summarization', 'overview', 'brief', 'digest', 'recap', 'outline']
+                    summary_keywords = ['summary', 'summarize', 'summarization', 'description', 'describe', 'overview', 'brief', 'briefly', 'digest', 'recap', 'outline']
                     return any(keyword in query.lower() for keyword in summary_keywords)
+
 
 
                 user_input = st.text_input("Your question:")
