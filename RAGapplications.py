@@ -257,16 +257,17 @@ else:
                         with st.spinner("Processing..."):
                             ## Loading the website or YT video data
                             if "youtube.com" in generic_url:
-                                       try:
-                                           loader = YoutubeLoader.from_youtube_url(generic_url, add_video_info=True)
-                                           docs = loader.load()
-                                       except Exception as e:
-                                           st.error(f"Error loading YouTube video: {str(e)}")
-                                           st.info("Try using a different YouTube video URL or check your internet connection.")
+                                try:
+                                    loader = YoutubeLoader.from_youtube_url(generic_url, add_video_info=True)
+                                    docs = loader.load()
+                                except Exception as e:
+                                    st.error(f"Error loading YouTube video: {str(e)}")
+                                    st.error(traceback.format_exc())  # Add this to capture the full traceback
+                                    st.info("Try using a different YouTube video URL or check your internet connection.")
                                         
                             else:
                                 loader = UnstructuredURLLoader(urls=[generic_url], ssl_verify=False)
-                            docs = loader.load()
+                                docs = loader.load()
 
                             # Process and summarize the content
                             output_summary = process_and_summarize(docs)
