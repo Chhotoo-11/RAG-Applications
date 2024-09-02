@@ -113,7 +113,7 @@ else:
             # Split and create embeddings for the documents
             text_splitter = RecursiveCharacterTextSplitter(chunk_size=5000, chunk_overlap=500)
             splits = text_splitter.split_documents(documents)
-            vectorstore = Chroma.from_documents(documents=splits, embedding=embeddings)
+            vectorstore = FAISS.from_documents(documents=splits, embedding=embeddings)
             retriever = vectorstore.as_retriever() 
     
             contextualize_q_system_prompt = (
