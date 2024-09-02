@@ -193,7 +193,8 @@ else:
                                 "configurable": {"session_id": session_id}
                             },
                         )
-                        st.success("Assistant:", response['answer'])
+                        final_answer= response['answer']
+                        st.success("Assistant:", final_answer)
             
             
 
