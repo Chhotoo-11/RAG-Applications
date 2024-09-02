@@ -175,15 +175,20 @@ else:
                     chain = load_summarize_chain(llm, chain_type="map_reduce", map_prompt=prompt, combine_prompt=prompt)
                     return chain.run(splits)
 
+                def is_summary_request(query):
+                    summary_keywords = ['summary', 'summarize', 'summarization', 'overview', 'brief', 'digest', 'recap', 'outline']
+                    return any(keyword in query.lower() for keyword in summary_keywords)
+
+
                 user_input = st.text_input("Your question:")
                 if user_input:
                     session_history = get_session_history(session_id)
                     
                     # Check if the user is asking for a summary
-                    if "summary" in user_input.lower():
-                        summary = get_summary(splits)
-                        st.write("Assistant: Here's a summary of the document(s):")
-                        st.success(summary)
+                    if is_summary_request(user_input):
+                                    summary = get_summary(splits)
+                                    st.write("Assistant: Here's a summary of the document(s):")
+                                    st.success(summary)
                         #session_history.add_user_message(user_input)
                         #session_history.add_ai_message(summary)
                     else:
