@@ -261,5 +261,3 @@ if api_key:
 
 else:
      st.info("Please choose an API and provide your API Key to continue.")  
-    else:
-        st.error("Failed to initialize LLM. Please check your API key and selection.")
