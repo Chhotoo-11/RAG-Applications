@@ -25,6 +25,9 @@ from langchain_nvidia_ai_endpoints import NVIDIAEmbeddings, ChatNVIDIA
 from dotenv import load_dotenv
 load_dotenv()
 from langchain_community.vectorstores import FAISS
+import nltk
+from nltk.stem import WordNetLemmatizer
+from nltk.tokenize import word_tokenize
 
 # Langsmith Tracking 
 os.environ["LANGCHAIN_API_KEY"]=os.getenv("LANGCHAIN_API_KEY") 
@@ -43,8 +46,17 @@ st.title("🤖 AI Knowledge Assistant")
 with st.sidebar:
     st.title("🛠️ Configuration")
     st.write("Configure your app settings below.")
-    api_key = st.text_input("Enter Groq API Key", value="", type="password")
-  
+    
+    api_mode = st.selectbox("Choose the API Interface",
+                            ["Choose an API", "NVIDIA API", "GROQ API"])
+
+    api_key = ""
+    if api_mode == "GROQ API":
+        api_key = st.text_input("Enter Groq API Key", value="", type="password")
+    elif api_mode == "NVIDIA API":
+        api_key = st.text_input("Enter NVIDIA API Key", value="", type="password")
+
+    
     st.markdown("---")
 
     # Section for app navigation
@@ -52,128 +64,153 @@ with st.sidebar:
     app_mode = st.selectbox("Choose the app mode", 
                             ["Chat with PDF", "URL/YouTube Summarizer", "Web Search"])
 
+
+# Initialize LLM
+def get_llm():
+    if api_mode == "GROQ API" and api_key:
+         return ChatGroq(groq_api_key=api_key, model_name="Gemma2-9b-It")
+
+    elif api_mode == "NVIDIA API" and api_key:
+         return ChatNVIDIA(model="meta/llama3-70b-instruct", nvidia_api_key=api_key)
+    return None
+
 ##  Selecting app mode
-if api_key:
-    llm= ChatGroq(model_name="Gemma2-9b-It", groq_api_key=api_key)
-    if app_mode == "Chat with PDF":
-        #llm= ChatGroq(model_name="Gemma2-9b-It", groq_api_key=api_key)
+if api_mode == "Choose an API" or not api_key:
+    st.info("Please choose an API and provide your API Key to continue.")
+else:
+    llm = get_llm()
+    if llm:
+        #st.write(llm)
+        if app_mode == "Chat with PDF":
+            st.header("📄Chat with PDF")
+            st.write("Start interacting with your PDF documents in a chat format. Upload a PDF and ask questions or extract information effortlessly.")
 
-        # Chat interface
-        session_id= st.text_input("Session ID:", value="default_session")
+            # Upload a pdf
+            uploaded_files = st.file_uploader("Choose PDF files", type="pdf", accept_multiple_files=True)
 
-        # Statefully manage chat history
-        if "store" not in st.session_state:
-            st.session_state.store= {}
+            os.environ["HF_TOKEN"] = os.getenv("HF_TOKEN")
+            embeddings= HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
+            
+            # Chat interface
+            session_id= st.text_input("Session ID:", value="default_session")
 
-        uploaded_files= st.file_uploader("Choose a PDF file", type="pdf", accept_multiple_files=True)
+            # Statefully manage chat history
+            if "store" not in st.session_state:
+                st.session_state.store= {}
 
-        os.environ["HF_TOKEN"] = os.getenv("HF_TOKEN")
-        embeddings= HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
+            # Process uploaded PDFs:
+            if uploaded_files:
+                documents = []
+                for uploaded_file in uploaded_files:
+                    temppdf = f"./temp.pdf"
+                    with open(temppdf, 'wb') as file:
+                        file.write(uploaded_file.getvalue())
+                        file_name = uploaded_file.name
+                    
+                    loader = PyPDFLoader(temppdf)
+                    docs = loader.load()
+                    documents.extend(docs)
 
-        # Process uploaded PDF's:
-        if uploaded_files:
-            documents= []
-            for uploaded_file in uploaded_files:
-                temppdf= f"./temp.pdf"
-                with open(temppdf, 'wb') as file:
-                    file.write(uploaded_file.getvalue())
-                    file_name= uploaded_file.name
-                
-                loader= PyPDFLoader(temppdf)
-                docs= loader.load()
-                documents.extend(docs)
+                # Split and create embeddings for the documents
+                text_splitter = RecursiveCharacterTextSplitter(chunk_size=5000, chunk_overlap=500)
+                splits = text_splitter.split_documents(documents)
+                vectorstore = FAISS.from_documents(documents=splits, embedding=embeddings)
+                retriever = vectorstore.as_retriever() 
 
-            # Split and create embeddings for the documents
-            text_splitter = RecursiveCharacterTextSplitter(chunk_size=5000, chunk_overlap=500)
-            splits = text_splitter.split_documents(documents)
-            vectorstore = FAISS.from_documents(documents=splits, embedding=embeddings)
-            retriever = vectorstore.as_retriever() 
+                contextualize_q_system_prompt = (
+                    "Given a chat history and the latest user question "
+                    "which might reference context in the chat history, "
+                    "formulate a standalone question which can be understood "
+                    "without the chat history. Do NOT answer the question, "
+                    "just reformulate it if needed and otherwise return it as is."
+                )
 
-            contextualize_q_system_prompt=(
-                "Given a chat history and the latest user question"
-                "which might reference context in the chat history, "
-                "formulate a standalone question which can be understood "
-                "without the chat history. Do NOT answer the question, "
-                "just reformulate it if needed and otherwise return it as is."
-            )
-
-            contextualize_q_prompt = ChatPromptTemplate.from_messages(
+                contextualize_q_prompt = ChatPromptTemplate.from_messages(
                     [
                         ("system", contextualize_q_system_prompt),
                         MessagesPlaceholder("chat_history"),
                         ("human", "{input}"),
                     ]
-            )
+                )
 
-            history_aware_retriever= create_history_aware_retriever(llm, retriever, contextualize_q_prompt)
+                history_aware_retriever = create_history_aware_retriever(llm, retriever, contextualize_q_prompt)
 
-            # Answer question
-            system_prompt = (
+                # Answer question
+                system_prompt = (
                     "You are an assistant for question-answering tasks. "
                     "Use the following pieces of retrieved context to answer "
                     "the question. If you don't know the answer, say that you "
                     "don't know. Use three sentences maximum and keep the "
-                    "answer concise."
+                    "answer concise. If the user asks for a summary, use the summarization function."
                     "\n\n"
                     "{context}"
                 )
-            qa_prompt = ChatPromptTemplate.from_messages(
+                qa_prompt = ChatPromptTemplate.from_messages(
                     [
                         ("system", system_prompt),
                         MessagesPlaceholder("chat_history"),
                         ("human", "{input}"),
                     ]
                 )
-            
-            question_answer_chain= create_stuff_documents_chain(llm,qa_prompt)
-            rag_chain= create_retrieval_chain(history_aware_retriever,question_answer_chain)
-
-            def get_session_history(session: str)->BaseChatMessageHistory:
-                if session_id not in st.session_state.store:
-                    st.session_state.store[session_id]= ChatMessageHistory()
-                return st.session_state.store[session_id]
-            
-            conversational_rag_chain=RunnableWithMessageHistory(
-                rag_chain,get_session_history,
-                input_messages_key="input",
-                history_messages_key="chat_history",
-                output_messages_key="answer"
-            )
-            def get_summary(splits):
-                prompt_template = """
-                  Provide a summary of the following content in 300 words:
-                  Content:{text}
-                """
-                prompt = PromptTemplate(template=prompt_template, input_variables=["text"])
-                chain = load_summarize_chain(llm, chain_type="map_reduce", map_prompt=prompt, combine_prompt=prompt)
-                return chain.run(splits)
-            
-
-            user_input = st.text_input("Your question:")
-            if user_input:
-                session_history = get_session_history(session_id)
                 
-                # Check if the user is asking for a summary
-                if "summary" in user_input.lower():
-                    summary = get_summary(splits)
-                    st.write("Assistant: Here's a summary of the document(s):")
-                    st.success(summary)
-                    session_history.add_user_message(user_input)
-                    session_history.add_ai_message(summary)
-                else:
-                    response = conversational_rag_chain.invoke(
-                        {"input": user_input},
-                        config={
-                            "configurable": {"session_id": session_id}
-                        },
-                    )
-                    st.success(f"Assistant: {response['answer']}")
-                #st.write(st.session_state.store)
-                #st.write("Chat History:", session_history.messages)
+                question_answer_chain = create_stuff_documents_chain(llm, qa_prompt)
+                rag_chain = create_retrieval_chain(history_aware_retriever, question_answer_chain)
+
+                def get_session_history(session: str) -> BaseChatMessageHistory:
+                    if session not in st.session_state.store:
+                        st.session_state.store[session] = ChatMessageHistory()
+                    return st.session_state.store[session]
+                
+                conversational_rag_chain = RunnableWithMessageHistory(
+                    rag_chain,
+                    get_session_history,
+                    input_messages_key="input",
+                    history_messages_key="chat_history",
+                    output_messages_key="answer"
+                )
+
+                def get_summary(splits):
+                    prompt_template = """
+                    Provide a summary of the following content in 300 words:
+                    Content:{text}
+                    """
+                    prompt = PromptTemplate(template=prompt_template, input_variables=["text"])
+                    chain = load_summarize_chain(llm, chain_type="map_reduce", map_prompt=prompt, combine_prompt=prompt)
+                    return chain.run(splits)
+                
+                nltk.download('punkt')
+                nltk.download('wordnet')
+                lemmatizer = WordNetLemmatizer()
+
+                def is_summary_request(query):
+                    summary_keywords = ['summary', 'summarize', 'summarization','description', 'describe', 'overview', 'brief', 'briefly', 'digest', 'recap', 'outline']
+                    return any(keyword in query.lower() for keyword in summary_keywords)
+
+
+                user_input = st.text_input("Your question:")
+                if user_input:
+                    session_history = get_session_history(session_id)
                     
+                    # Check if the user is asking for a summary
+                    if is_summary_request(user_input):
+                                    summary = get_summary(splits)
+                                    st.write("Assistant: Here's a summary of the document:")
+                                    st.success(summary)
+                                    session_history.add_user_message(user_input)
+                                    session_history.add_ai_message(summary)
+                    else:
+                        response = conversational_rag_chain.invoke(
+                            {"input": user_input},
+                            config={
+                                "configurable": {"session_id": session_id}
+                            },
+                        )
+                        st.success(f"Assistant: {response['answer']}")
+            
+            
 
         ## Web Search
-    elif app_mode == "Web Search":
+        elif app_mode == "Web Search":
             st.header("Web Search")
             st.write("Easily search the web right from this app. Simply enter your query below to begin.")
     
@@ -210,7 +247,7 @@ if api_key:
 
 
         ## 
-    elif app_mode == "URL/YouTube Summarizer":
+        elif app_mode == "URL/YouTube Summarizer":
             st.header("URL/YouTube Summarizer")
             st.write("Enter a URL or YouTube link to quickly generate a concise summary of the content")
             
@@ -252,12 +289,12 @@ if api_key:
                                 loader=UnstructuredURLLoader(urls=[generic_url],ssl_verify=False,
                                                              )
                             docs=loader.load()
-                                        # Process and summarize the content
+                            # Process and summarize the content
                             output_summary = process_and_summarize(docs)
 
                             st.success(output_summary)
                     except Exception as e:
                         st.exception(f"Exception: {e}")
 
-else:
-     st.info("Please choose an API and provide your API Key to continue.")  
+    else:
+        st.error("Failed to initialize LLM. Please check your API key and selection.")
