@@ -25,9 +25,6 @@ from langchain_nvidia_ai_endpoints import NVIDIAEmbeddings, ChatNVIDIA
 from dotenv import load_dotenv
 load_dotenv()
 from langchain_community.vectorstores import FAISS
-import nltk
-from nltk.stem import WordNetLemmatizer
-from nltk.tokenize import word_tokenize
 
 # Langsmith Tracking 
 os.environ["LANGCHAIN_API_KEY"]=os.getenv("LANGCHAIN_API_KEY") 
@@ -37,6 +34,8 @@ os.environ["LANGCHAIN_PROJECT"]="RAG MEGA PROJECT"
 
 ## Set up Streamlit app
 st.set_page_config(page_title="AI-Powered Knowledge Hub", page_icon="🤖", layout="wide", menu_items={
+                     'Get Help': 'https://docs.streamlit.io/',
+                     'Report a bug': 'https://github.com/Chhotoo-11/RAG-Applications/issues',
                      'About': "This app was created by Chhotoo Solanki."
     })
 st.title("🤖 AI Knowledge Assistant")
@@ -98,17 +97,17 @@ else:
             if "store" not in st.session_state:
                 st.session_state.store= {}
 
-            # Process uploaded PDFs:
+            # Process uploaded PDF's:
             if uploaded_files:
-                documents = []
+                documents= []
                 for uploaded_file in uploaded_files:
-                    temppdf = f"./temp.pdf"
+                    temppdf= f"./temp.pdf"
                     with open(temppdf, 'wb') as file:
                         file.write(uploaded_file.getvalue())
-                        file_name = uploaded_file.name
+                        file_name= uploaded_file.name
                     
-                    loader = PyPDFLoader(temppdf)
-                    docs = loader.load()
+                    loader= PyPDFLoader(temppdf)
+                    docs= loader.load()
                     documents.extend(docs)
 
                 # Split and create embeddings for the documents
@@ -117,8 +116,8 @@ else:
                 vectorstore = FAISS.from_documents(documents=splits, embedding=embeddings)
                 retriever = vectorstore.as_retriever() 
 
-                contextualize_q_system_prompt = (
-                    "Given a chat history and the latest user question "
+                contextualize_q_system_prompt=(
+                    "Given a chat history and the latest user question"
                     "which might reference context in the chat history, "
                     "formulate a standalone question which can be understood "
                     "without the chat history. Do NOT answer the question, "
@@ -126,65 +125,60 @@ else:
                 )
 
                 contextualize_q_prompt = ChatPromptTemplate.from_messages(
-                    [
-                        ("system", contextualize_q_system_prompt),
-                        MessagesPlaceholder("chat_history"),
-                        ("human", "{input}"),
-                    ]
+                        [
+                            ("system", contextualize_q_system_prompt),
+                            MessagesPlaceholder("chat_history"),
+                            ("human", "{input}"),
+                        ]
                 )
 
-                history_aware_retriever = create_history_aware_retriever(llm, retriever, contextualize_q_prompt)
+                history_aware_retriever= create_history_aware_retriever(llm, retriever, contextualize_q_prompt)
 
                 # Answer question
                 system_prompt = (
-                    "You are an assistant for question-answering tasks. "
-                    "Use the following pieces of retrieved context to answer "
-                    "the question. If you don't know the answer, say that you "
-                    "don't know. Use three sentences maximum and keep the "
-                    "answer concise. If the user asks for a summary, use the summarization function."
-                    "\n\n"
-                    "{context}"
-                )
+                        "You are an assistant for question-answering tasks. "
+                        "Use the following pieces of retrieved context to answer "
+                        "the question. If you don't know the answer, say that you "
+                        "don't know. Use three sentences maximum and keep the "
+                        "answer concise."
+                        "\n\n"
+                        "{context}"
+                    )
                 qa_prompt = ChatPromptTemplate.from_messages(
-                    [
-                        ("system", system_prompt),
-                        MessagesPlaceholder("chat_history"),
-                        ("human", "{input}"),
-                    ]
-                )
+                        [
+                            ("system", system_prompt),
+                            MessagesPlaceholder("chat_history"),
+                            ("human", "{input}"),
+                        ]
+                    )
                 
-                question_answer_chain = create_stuff_documents_chain(llm, qa_prompt)
-                rag_chain = create_retrieval_chain(history_aware_retriever, question_answer_chain)
+                question_answer_chain= create_stuff_documents_chain(llm,qa_prompt)
+                rag_chain= create_retrieval_chain(history_aware_retriever,question_answer_chain)
 
-                def get_session_history(session: str) -> BaseChatMessageHistory:
-                    if session not in st.session_state.store:
-                        st.session_state.store[session] = ChatMessageHistory()
-                    return st.session_state.store[session]
+                def get_session_history(session: str)->BaseChatMessageHistory:
+                    if session_id not in st.session_state.store:
+                        st.session_state.store[session_id]= ChatMessageHistory()
+                    return st.session_state.store[session_id]
                 
-                conversational_rag_chain = RunnableWithMessageHistory(
-                    rag_chain,
-                    get_session_history,
+                conversational_rag_chain=RunnableWithMessageHistory(
+                    rag_chain,get_session_history,
                     input_messages_key="input",
                     history_messages_key="chat_history",
                     output_messages_key="answer"
                 )
 
                 def get_summary(splits):
-                    prompt_template = """
-                    Provide a summary of the following content in 300 words:
-                    Content:{text}
-                    """
-                    prompt = PromptTemplate(template=prompt_template, input_variables=["text"])
-                    chain = load_summarize_chain(llm, chain_type="map_reduce", map_prompt=prompt, combine_prompt=prompt)
-                    return chain.run(splits)
-                
-                nltk.download('punkt')
-                nltk.download('wordnet')
-                lemmatizer = WordNetLemmatizer()
-
+                   prompt_template = """
+                   Provide a summary of the following content in 300 words:
+                   Content:{text}
+                   """
+                   prompt = PromptTemplate(template=prompt_template, input_variables=["text"])
+                   chain = load_summarize_chain(llm, chain_type="map_reduce", map_prompt=prompt, combine_prompt=prompt)
+                   return chain.run(splits)
+            
                 def is_summary_request(query):
-                    summary_keywords = ['summary', 'summarize', 'summarization','description', 'describe', 'overview', 'brief', 'briefly', 'digest', 'recap', 'outline']
-                    return any(keyword in query.lower() for keyword in summary_keywords)
+                   summary_keywords = ['summary', 'summarize', 'summarization','description', 'describe', 'overview', 'brief', 'briefly', 'digest', 'recap', 'outline']
+                   return any(keyword in query.lower() for keyword in summary_keywords)
 
 
                 user_input = st.text_input("Your question:")
@@ -193,11 +187,11 @@ else:
                     
                     # Check if the user is asking for a summary
                     if is_summary_request(user_input):
-                                    summary = get_summary(splits)
-                                    st.write("Assistant: Here's a summary of the document:")
-                                    st.success(summary)
-                                    session_history.add_user_message(user_input)
-                                    session_history.add_ai_message(summary)
+                        summary = get_summary(splits)
+                        st.write("Assistant: Here's a summary of the document(s):")
+                        st.success(summary)
+                        session_history.add_user_message(user_input)
+                        session_history.add_ai_message(summary)
                     else:
                         response = conversational_rag_chain.invoke(
                             {"input": user_input},
@@ -206,7 +200,6 @@ else:
                             },
                         )
                         st.success(f"Assistant: {response['answer']}")
-            
             
 
         ## Web Search
@@ -289,7 +282,7 @@ else:
                                 loader=UnstructuredURLLoader(urls=[generic_url],ssl_verify=False,
                                                              )
                             docs=loader.load()
-                            # Process and summarize the content
+                                        # Process and summarize the content
                             output_summary = process_and_summarize(docs)
 
                             st.success(output_summary)
