@@ -166,40 +166,47 @@ else:
                     output_messages_key="answer"
                 )
 
-                def get_summary(splits):
-                    prompt_template = """
-                    Provide a summary of the following content in 300 words:
-                    Content:{text}
-                    """
-                    prompt = PromptTemplate(template=prompt_template, input_variables=["text"])
-                    chain = load_summarize_chain(llm, chain_type="map_reduce", map_prompt=prompt, combine_prompt=prompt)
-                    return chain.run(splits)
+                # def get_summary(splits):
+                #     prompt_template = """
+                #     Provide a summary of the following content in 300 words:
+                #     Content:{text}
+                #     """
+                #     prompt = PromptTemplate(template=prompt_template, input_variables=["text"])
+                #     chain = load_summarize_chain(llm, chain_type="map_reduce", map_prompt=prompt, combine_prompt=prompt)
+                #     return chain.run(splits)
 
-                def is_summary_request(query):
-                    summary_keywords = ['summary', 'summarize', 'summarization', 'description', 'describe', 'overview', 'brief', 'briefly', 'digest', 'recap', 'outline']
-                    return any(keyword in query.lower() for keyword in summary_keywords)
+                # def is_summary_request(query):
+                #     summary_keywords = ['summary', 'summarize', 'summarization', 'description', 'describe', 'overview', 'brief', 'briefly', 'digest', 'recap', 'outline']
+                #     return any(keyword in query.lower() for keyword in summary_keywords)
 
 
 
                 user_input = st.text_input("Your question:")
                 if user_input:
                     session_history = get_session_history(session_id)
-                    
-                    # Check if the user is asking for a summary
-                    if is_summary_request(user_input):
-                                    summary = get_summary(splits)
-                                    st.write("Assistant: Here's a summary of the document(s):")
-                                    st.success(summary)
-                        #session_history.add_user_message(user_input)
-                        #session_history.add_ai_message(summary)
-                    else:
-                        response = conversational_rag_chain.invoke(
-                            {"input": user_input},
-                            config={
+                    response = conversational_rag_chain.invoke(
+                        {"input": user_input},
+                         config={
                                 "configurable": {"session_id": session_id}
                             },
                         )
                         st.success(f"Assistant: {response['answer']}")
+                    
+                    # # Check if the user is asking for a summary
+                    # if is_summary_request(user_input):
+                    #                 summary = get_summary(splits)
+                    #                 st.write("Assistant: Here's a summary of the document(s):")
+                    #                 st.success(summary)
+                    #     #session_history.add_user_message(user_input)
+                    #     #session_history.add_ai_message(summary)
+                    # else:
+                    #     response = conversational_rag_chain.invoke(
+                    #         {"input": user_input},
+                    #         config={
+                    #             "configurable": {"session_id": session_id}
+                    #         },
+                    #     )
+                    #     st.success(f"Assistant: {response['answer']}")
             
             
 
