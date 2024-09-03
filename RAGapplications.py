@@ -171,6 +171,13 @@ else:
                    prompt_template = """
                    Provide a summary of the following content in 300 words:
                    Content:{text}
+                        Format the summary as follows:
+                        1. Main Topic: [Brief description of the main topic]
+                        2. Key Points:
+                        - [First key point]
+                        - [Second key point]
+                        - [Third key point]
+                        3. Conclusion: [Brief conclusion or final thoughts]
                    """
                    prompt = PromptTemplate(template=prompt_template, input_variables=["text"])
                    chain = load_summarize_chain(llm, chain_type="map_reduce", map_prompt=prompt, combine_prompt=prompt)
