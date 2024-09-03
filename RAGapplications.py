@@ -190,7 +190,7 @@ else:
                                 "configurable": {"session_id": session_id}
                             },
                         )
-                        st.success(f"Assistant: {response['answer']}")
+                    st.success(f"Assistant: {response['answer']}")
                     
                     # # Check if the user is asking for a summary
                     # if is_summary_request(user_input):
