@@ -76,6 +76,7 @@ def get_llm():
 ##  Selecting app mode
 if api_mode == "Choose an API" or not api_key:
     st.info("Please choose an API and provide your API Key to continue.")
+    st.write("To use this app, you need to provide an API key, which you can get any one from here [GROQ API KEY](https://console.groq.com/keys) or [NVIDIA API KEY](https://org.ngc.nvidia.com/setup/api-key).")
 else:
     llm = get_llm()
     if llm:
